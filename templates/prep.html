@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% block title %}Preparação — Controle Produtividade{% endblock %}
+{% block content %}
+
+<div class="section-head">
+  <div class="section-title"><i class="bi bi-grid-3x3-gap-fill"></i>Cestos — toque para abrir</div>
+  <div class="small muted">
+    <span class="pill pill-prep">Preparando</span>
+    <span class="pill" style="background:#fdeaea;color:#b91c3c;">Pausado</span>
+    <span class="pill" style="background:#e9ecef;color:#475569;">Preencher</span>
+    <span class="pill pill-fila">Na fila</span>
+    <span class="pill pill-banho">Em banho</span>
+  </div>
+</div>
+
+<div id="grade" class="cestos-grid"><div class="muted small">Carregando cestos…</div></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h5><i class="bi bi-box-seam"></i>Cesto <span id="mCesto"></span></h5>
+      <button class="modal-x" onclick="fecharModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- VIEW 1: iniciar (escolhe nº de operadores) -->
+      <div id="viewIniciar" style="display:none;">
+        <label class="label">Quantos operadores neste cesto?</label>
+        <div class="opbtns">
+          <button class="opbtn active" id="op1btn" onclick="setNOper(1)">1</button>
+          <button class="opbtn" id="op2btn" onclick="setNOper(2)">2</button>
+          <button class="opbtn" id="op3btn" onclick="setNOper(3)">3</button>
+        </div>
+        <button class="btn btn-aqua btn-block" style="margin-top:20px;" onclick="iniciarPrep()"><i class="bi bi-play-fill"></i>Iniciar preparação</button>
+      </div>
+
+      <!-- VIEW 2: cronômetro -->
+      <div id="viewCron" style="display:none;text-align:center;">
+        <div class="cron-big" id="cronBig">00:00</div>
+        <div class="cron-status" id="cronStatus"></div>
+        <div style="display:flex;gap:10px;margin-top:22px;">
+          <button class="btn btn-ghost" style="flex:1;" id="btnPausa" onclick="pedirPausa()"></button>
+          <button class="btn btn-primary" style="flex:1;" onclick="pedirParar()"><i class="bi bi-stop-fill"></i>Parar tempo</button>
+        </div>
+        <p class="hint" style="margin-top:14px;">Use <strong>Pausar</strong> para café/ginástica (não conta). <strong>Parar tempo</strong> encerra para preencher.</p>
+      </div>
+
+      <!-- VIEW 3: preencher / editar -->
+      <div id="viewForm" style="display:none;">
+        <input type="hidden" id="fId">
+        <div id="cronInfo" class="alert alert-info" style="display:none;"><i class="bi bi-stopwatch"></i><span id="cronTxt"></span></div>
+
+        <!-- lista de OPs -->
+        <label class="label">Ordens (OPs) deste cesto</label>
+        <div id="listaItens" class="itens-list"></div>
+
+        <div class="add-op-box">
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="addOp" class="input input-sm" placeholder="Bipe ou digite a OP" inputmode="numeric" autocomplete="off" style="flex:1;">
+            <button class="btn btn-aqua btn-sm" onclick="addOrdem()"><i class="bi bi-plus-lg"></i>Adicionar OP</button>
+          </div>
+          <div id="msgOrdem" class="hint"></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:6px;">
+          <div class="field" style="margin:0;"><label class="label">Processo</label>
+            <select id="fProc" class="select input-sm"><option value="">Selecione…</option>{% for p in processos %}<option>{{ p }}</option>{% endfor %}</select>
+          </div>
+          <div class="field" style="margin:0;"><label class="label">Tipo</label>
+            <select id="fTipo" class="select input-sm"><option>Normal</option><option>Retrabalho</option></select>
+          </div>
+          <div class="field col-full" style="margin:0;"><label class="label">Observação</label><textarea id="fObs" class="input input-sm" rows="2"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot" id="footForm" style="display:none;">
+      <button class="btn btn-ghost" onclick="fecharModal()" style="flex:0 0 auto;">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" id="btnSalvar"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmação: Parar tempo -->
+<div class="modal-overlay" id="modalConfParar">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-head">
+      <h5><i class="bi bi-stop-fill"></i>Confirmar — Parar tempo</h5>
+      <button class="modal-x" onclick="fecharConfParar()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:24px 20px;">
+      <p style="margin:0 0 8px;font-size:15px;">Deseja realmente parar o cronômetro de preparação?</p>
+      <p class="hint" style="margin:0;">Após confirmar, o tempo será encerrado e você poderá preencher os dados do cesto.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="fecharConfParar()" style="flex:0 0 auto;">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmarParar()"><i class="bi bi-stop-fill"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de motivo da pausa -->
+<div class="modal-overlay" id="modalMotivo">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h5><i class="bi bi-pause-circle"></i>Motivo da pausa</h5>
+      <button class="modal-x" onclick="fecharMotivo()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="motivo-grid">
+        <button class="motivo-btn" onclick="escolherMotivo('Almoço/Janta')"><i class="bi bi-cup-hot"></i>Almoço/Janta</button>
+        <button class="motivo-btn" onclick="escolherMotivo('Café')"><i class="bi bi-cup"></i>Café</button>
+        <button class="motivo-btn" onclick="escolherMotivo('Laboral')"><i class="bi bi-person-arms-up"></i>Laboral</button>
+        <button class="motivo-btn" onclick="escolherMotivo('Outros')"><i class="bi bi-three-dots"></i>Outros</button>
+      </div>
+      <div id="outroMotivo" style="display:none;margin-top:14px;">
+        <label class="label">Descreva o motivo</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="outroMotivoTxt" class="input input-sm" placeholder="Ex: manutenção" style="flex:1;">
+          <button class="btn btn-aqua btn-sm" onclick="confirmarOutro()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ROTULO={PREPARANDO:'Preparando',PREENCHER:'Preencher',FILA_BANHO:'Na fila',EM_BANHO:'Em banho'};
+let modalEstado='', cestoSel=0, cardAtual=null, nOper=1, itens=[];
+
+function fmtTempo(s){const m=Math.floor(s/60),x=s%60;return `${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;}
+let servidorOffset=0;
+async function sincronizarRelogio(){
+  try{
+    const t0=Date.now();
+    const j=await (await fetch('/api/agora')).json();
+    const t1=Date.now();
+    servidorOffset=new Date(j.agora_iso).getTime()+(t1-t0)/2-t1;
+  }catch(_){servidorOffset=0;}
+}
+function agoraServidor(){return Date.now()+servidorOffset;}
+function segPrep(cd){
+  if(!cd.prep_inicio_iso)return 0;
+  const ini=new Date(cd.prep_inicio_iso).getTime();
+  let p=cd.pausa_acumulada_seg||0;
+  if(cd.pausado&&cd.pausa_inicio_iso)p+=Math.floor((agoraServidor()-new Date(cd.pausa_inicio_iso).getTime())/1000);
+  return Math.max(0,Math.floor((agoraServidor()-ini)/1000)-p);
+}
+
+async function carregar(){
+  const g=await (await fetch('/api/cestos')).json();
+  document.getElementById('grade').innerHTML=g.map(c=>{
+    if(!c.ocupado) return `<button class="cesto livre" onclick="abrirLivre(${c.numero})"><span class="cesto-num">${c.numero}</span><span class="cesto-tag">Livre</span></button>`;
+    const cd=c.card; let cron='',cls='st-'+cd.estado,rot=ROTULO[cd.estado]||cd.estado;
+    if(cd.estado==='PREPARANDO'){
+      cron=`<span class="cesto-mini-cron prep-cron" data-card='${JSON.stringify(cd).replace(/'/g,"&#39;")}'>${fmtTempo(segPrep(cd))}</span>`;
+      if(cd.pausado){cls+=' is-paused';rot='Pausado';}
+    }else if(cd.estado==='EM_BANHO'&&cd.banho_inicio_iso){
+      cron=`<span class="cesto-mini-cron cron-el" data-ini="${cd.banho_inicio_iso}">${fmtTempo(Math.max(0,Math.floor((agoraServidor()-new Date(cd.banho_inicio_iso).getTime())/1000)))}</span>`;
+    }
+    const badge=cd.n_itens>1?`<span class="multi-badge">${cd.n_itens} OPs</span>`:'';
+    const op2=cd.n_operadores>1?`<span class="cesto-nop" title="${cd.n_operadores} operadores"><i class="bi bi-people-fill"></i>${cd.n_operadores}</span>`:'';
+    return `<button class="cesto ocupado ${cls}" onclick='abrirOcupado(${JSON.stringify(cd).replace(/'/g,"&#39;")})'>
+      <i class="bi ${cd.pausado?'bi-pause-circle-fill':'bi-lock-fill'} cesto-lock"></i>${op2}
+      <span class="cesto-num">${cd.numero_cesto}</span><span class="cesto-tag">${rot}</span>${cron}${badge}</button>`;
+  }).join('');
+}
+function tick(){
+  document.querySelectorAll('.cron-el[data-ini]').forEach(e=>{e.textContent=fmtTempo(Math.max(0,Math.floor((agoraServidor()-new Date(e.dataset.ini).getTime())/1000)));});
+  document.querySelectorAll('.prep-cron[data-card]').forEach(e=>{try{e.textContent=fmtTempo(segPrep(JSON.parse(e.dataset.card)));}catch(_){}});
+  if(modalEstado==='cron'&&cardAtual&&!cardAtual.pausado)document.getElementById('cronBig').textContent=fmtTempo(segPrep(cardAtual));
+}
+
+function setNOper(n){
+  nOper=n;
+  document.getElementById('op1btn').classList.toggle('active',n===1);
+  document.getElementById('op2btn').classList.toggle('active',n===2);
+  document.getElementById('op3btn').classList.toggle('active',n===3);
+}
+
+function abrirLivre(num){
+  cestoSel=num; modalEstado='iniciar'; cardAtual=null; setNOper(1);
+  document.getElementById('mCesto').textContent=num;
+  mostrarView('iniciar');
+  document.getElementById('modal').classList.add('open');
+}
+
+function abrirOcupado(cd){
+  cestoSel=cd.numero_cesto; cardAtual=cd;
+  document.getElementById('mCesto').textContent=cd.numero_cesto;
+  document.getElementById('modal').classList.add('open');
+  if(cd.estado==='PREPARANDO'){
+    modalEstado='cron'; mostrarView('cron'); atualizarBotaoPausa(cd.pausado);
+    document.getElementById('cronBig').textContent=fmtTempo(segPrep(cd));
+  }else{
+    itens=(cd.itens&&cd.itens.length)?JSON.parse(JSON.stringify(cd.itens)):[];
+    document.getElementById('fId').value=cd.id;
+    document.getElementById('fProc').value=cd.processo||'';
+    document.getElementById('fTipo').value=cd.tipo||'Normal';
+    document.getElementById('fObs').value=cd.observacao||'';
+    document.getElementById('msgOrdem').innerHTML='';
+    document.getElementById('addOp').value='';
+    renderItens();
+    const ci=document.getElementById('cronInfo');
+    if(cd.estado==='PREENCHER'){
+      modalEstado='preencher';
+      document.getElementById('btnSalvar').innerHTML='<i class="bi bi-check2-circle"></i>Concluir e enviar ao banho';
+      ci.style.display='flex'; document.getElementById('cronTxt').textContent=`Tempo de preparação: ${cd.prep_minutos} min (já parado)`;
+      setTimeout(()=>document.getElementById('addOp').focus(),300);
+    }else{
+      modalEstado='editar';
+      document.getElementById('btnSalvar').innerHTML='<i class="bi bi-save"></i>Salvar correções';
+      ci.style.display='flex'; document.getElementById('cronTxt').textContent = cd.estado==='FILA_BANHO'?`Na fila do banho · prep ${cd.prep_minutos} min`:`Em banho · iniciado ${cd.banho_inicio}`;
+    }
+    mostrarView('form');
+  }
+}
+
+function mostrarView(v){
+  document.getElementById('viewIniciar').style.display=v==='iniciar'?'block':'none';
+  document.getElementById('viewCron').style.display=v==='cron'?'block':'none';
+  document.getElementById('viewForm').style.display=v==='form'?'block':'none';
+  document.getElementById('footForm').style.display=v==='form'?'flex':'none';
+}
+
+function renderItens(){
+  const el=document.getElementById('listaItens');
+  if(!itens.length){el.innerHTML='<div class="muted small" style="padding:8px 0;">Nenhuma OP ainda. Bipe ou digite abaixo.</div>';return;}
+  el.innerHTML=itens.map((it,idx)=>`
+    <div class="item-op-edit">
+      <div class="item-op-head">
+        <span class="item-op-n">${idx+1}</span>
+        <button class="item-op-del" onclick="delItem(${idx})"><i class="bi bi-trash"></i></button>
+      </div>
+      <div class="item-grid">
+        <div><label class="mini-label">OP</label><input class="input input-sm" value="${it.ordem||''}" oninput="setCampo(${idx},'ordem',this.value)" inputmode="numeric"></div>
+        <div><label class="mini-label">Código</label><input class="input input-sm" value="${it.material||''}" oninput="setCampo(${idx},'material',this.value)" onblur="buscarPorCodigo(${idx})"></div>
+        <div class="item-grid-full"><label class="mini-label">Descrição</label><input class="input input-sm" value="${(it.texto_breve||'').replace(/"/g,'&quot;')}" oninput="setCampo(${idx},'texto_breve',this.value)"></div>
+        <div><label class="mini-label">Quantidade</label><input type="text" class="input input-sm" value="${it.quantidade||0}" oninput="setCampo(${idx},'quantidade',this.value)" inputmode="numeric" pattern="[0-9]*"></div>
+      </div>
+    </div>`).join('');
+}
+function setCampo(i,campo,v){
+  if(campo==='quantidade') itens[i].quantidade=parseInt(v)||0;
+  else itens[i][campo]=v;
+}
+function delItem(i){itens.splice(i,1);renderItens();}
+
+// Quando o item não tem OP: ao digitar o código, puxa a descrição da lista mestra
+async function buscarPorCodigo(i){
+  const it=itens[i];
+  if(!it) return;
+  const cod=(it.material||'').trim();
+  // só busca se tiver código, não tiver OP e a descrição estiver vazia
+  if(!cod || (it.ordem||'').trim() || (it.texto_breve||'').trim()) return;
+  try{
+    const j=await (await fetch('/api/buscar_codigo/'+encodeURIComponent(cod))).json();
+    if(j.encontrado){
+      itens[i].texto_breve=j.texto_breve||'';
+      if(!itens[i].quantidade) itens[i].quantidade=j.quantidade||0;
+      renderItens();
+      document.getElementById('msgOrdem').innerHTML='<span class="txt-ok"><i class="bi bi-check-circle-fill"></i> Descrição encontrada pelo código.</span>';
+    }else{
+      document.getElementById('msgOrdem').innerHTML='<span class="txt-warn"><i class="bi bi-exclamation-circle"></i> Código não encontrado na lista — digite a descrição na mão.</span>';
+    }
+  }catch(_){}
+}
+
+async function addOrdem(){
+  let op=document.getElementById('addOp').value.trim();
+  const msg=document.getElementById('msgOrdem');
+  if(!op){ // adiciona item vazio para digitar tudo na mão
+    itens.push({ordem:'',material:'',texto_breve:'',quantidade:0});
+    renderItens(); return;
+  }
+  // Limpa código de barras: remove 4 dígitos do início e 4 do fim se total > 8 dígitos
+  const soDigitos=op.replace(/\D/g,'');
+  if(soDigitos.length>8){
+    op=soDigitos.slice(4,-4);
+    document.getElementById('addOp').value=op;
+  }
+  const j=await (await fetch('/api/buscar_ordem/'+encodeURIComponent(op))).json();
+  if(j.encontrado){
+    itens.push({ordem:j.ordem,material:j.material,texto_breve:j.texto_breve,quantidade:j.quantidade});
+    msg.innerHTML='<span class="txt-ok"><i class="bi bi-check-circle-fill"></i> OP encontrada — preenchida automaticamente.</span>';
+  }else{
+    itens.push({ordem:j.ordem,material:'',texto_breve:'',quantidade:0});
+    msg.innerHTML='<span class="txt-warn"><i class="bi bi-exclamation-circle"></i> OP fora da lista mestra — preencha código, descrição e quantidade na mão.</span>';
+  }
+  document.getElementById('addOp').value='';
+  renderItens();
+  document.getElementById('addOp').focus();
+}
+document.getElementById('addOp').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addOrdem();}});
+
+function atualizarBotaoPausa(p){
+  const b=document.getElementById('btnPausa'),s=document.getElementById('cronStatus'),big=document.getElementById('cronBig');
+  if(p){b.innerHTML='<i class="bi bi-play-fill"></i>Retomar';b.className='btn btn-aqua';b.style.flex='1';s.innerHTML='<span class="txt-err"><i class="bi bi-pause-circle-fill"></i> Em pausa</span>';big.classList.add('paused');}
+  else{b.innerHTML='<i class="bi bi-pause-fill"></i>Pausar';b.className='btn btn-ghost';b.style.flex='1';s.innerHTML='<span class="txt-ok"><i class="bi bi-stopwatch"></i> Cronometrando</span>';big.classList.remove('paused');}
+}
+function fecharModal(){document.getElementById('modal').classList.remove('open');modalEstado='';cardAtual=null;itens=[];}
+
+async function iniciarPrep(){
+  const j=await (await fetch('/api/prep/iniciar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_cesto:cestoSel,n_operadores:nOper})})).json();
+  if(j.sucesso){fecharModal();carregar();}else alert(j.erro);
+}
+/* ── Pausar: retomar direto, pausar pede motivo (o modal de motivo É a confirmação) ── */
+function pedirPausa(){
+  if(!cardAtual) return;
+  if(cardAtual.pausado){
+    enviarPausa(null); // retomar sem confirmação
+  } else {
+    abrirMotivo(); // modal de motivo = confirmação de pausa
+  }
+}
+async function togglePausa(){ pedirPausa(); } // alias de compatibilidade
+
+function abrirMotivo(){document.getElementById('modalMotivo').classList.add('open');document.getElementById('outroMotivo').style.display='none';document.getElementById('outroMotivoTxt').value='';}
+function fecharMotivo(){document.getElementById('modalMotivo').classList.remove('open');}
+function escolherMotivo(m){
+  if(m==='Outros'){
+    document.getElementById('outroMotivo').style.display='block';
+    document.getElementById('outroMotivoTxt').focus();
+  }else{
+    enviarPausa(m); fecharMotivo();
+  }
+}
+function confirmarOutro(){
+  const t=document.getElementById('outroMotivoTxt').value.trim();
+  if(!t){alert('Digite o motivo.');return;}
+  enviarPausa(t); fecharMotivo();
+}
+async function enviarPausa(motivo){
+  const body={id:cardAtual.id};
+  if(motivo) body.motivo=motivo;
+  const j=await (await fetch('/api/prep/pausar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  if(j.sucesso){const g=await (await fetch('/api/cestos')).json();const c=g.find(x=>x.ocupado&&x.card.id===cardAtual.id);if(c){cardAtual=c.card;atualizarBotaoPausa(cardAtual.pausado);document.getElementById('cronBig').textContent=fmtTempo(segPrep(cardAtual));}carregar();}
+  else alert(j.erro);
+}
+
+/* ── Parar tempo com modal de confirmação ── */
+function pedirParar(){
+  if(!cardAtual) return;
+  document.getElementById('modalConfParar').classList.add('open');
+}
+function fecharConfParar(){document.getElementById('modalConfParar').classList.remove('open');}
+async function confirmarParar(){fecharConfParar();await pararTempo();}
+document.getElementById('modalConfParar').addEventListener('click',e=>{if(e.target.id==='modalConfParar')fecharConfParar();});
+
+async function pararTempo(){
+  if(!cardAtual)return;
+  const j=await (await fetch('/api/prep/parar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cardAtual.id})})).json();
+  if(j.sucesso){cardAtual.estado='PREENCHER';cardAtual.prep_minutos=j.prep_minutos;cardAtual.itens=cardAtual.itens||[];abrirOcupado(cardAtual);carregar();}else alert(j.erro);
+}
+
+async function salvar(){
+  if(modalEstado==='preencher'&&itens.length===0){document.getElementById('msgOrdem').innerHTML='<span class="txt-err">Adicione pelo menos uma OP.</span>';return;}
+  const payload={id:document.getElementById('fId').value,itens:itens,
+    processo:document.getElementById('fProc').value,tipo:document.getElementById('fTipo').value,
+    observacao:document.getElementById('fObs').value.trim()};
+  const url=modalEstado==='preencher'?'/api/prep/finalizar':'/api/card/editar';
+  const j=await (await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})).json();
+  if(j.sucesso){fecharModal();carregar();}else document.getElementById('msgOrdem').innerHTML=`<span class="txt-err">${j.erro}</span>`;
+}
+document.getElementById('btnSalvar').addEventListener('click',salvar);
+let _downNoOverlay=false;
+document.getElementById('modal').addEventListener('pointerdown',e=>{_downNoOverlay=(e.target.id==='modal');});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal'&&_downNoOverlay)fecharModal();_downNoOverlay=false;});
+
+sincronizarRelogio().then(()=>{carregar();setInterval(carregar,5000);setInterval(tick,1000);});
+setInterval(sincronizarRelogio,60000);
+</script>
+{% endblock %}

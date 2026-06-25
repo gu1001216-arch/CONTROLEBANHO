@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Lista Mestra — Controle Produtividade{% endblock %}
+{% block content %}
+<div style="max-width:920px;margin:0 auto;">
+  <div class="section-head"><div class="section-title"><i class="bi bi-table"></i>Lista mestra (relatório SAP)</div></div>
+  {% if msg %}<div class="alert alert-info"><i class="bi bi-info-circle-fill"></i>{{ msg }}</div>{% endif %}
+
+  <!-- Segurança dos dados -->
+  <div class="panel panel-pad" style="margin-bottom:20px;">
+    <div class="section-title" style="font-size:1rem;margin-bottom:12px;"><i class="bi bi-shield-check"></i>Segurança dos dados</div>
+    <div id="dbStatusBox" style="padding:14px 16px;border-radius:8px;border:1px solid var(--line);margin-bottom:14px;">
+      <span class="small muted">Verificando banco de dados…</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <a href="/api/admin/backup" class="btn btn-secondary"><i class="bi bi-download"></i>Baixar backup (JSON)</a>
+      <label class="btn btn-ghost" style="cursor:pointer;margin:0;">
+        <i class="bi bi-upload"></i>Restaurar backup
+        <input type="file" id="fileRestaurar" accept=".json" style="display:none;" onchange="restaurarBackup(this)">
+      </label>
+      <span id="restaurarMsg" class="small muted"></span>
+    </div>
+    <p class="small muted" style="margin:12px 0 0;">
+      O backup salva todos os cestos e usuários num arquivo no seu computador. A restauração <strong>só adiciona</strong> o que não existe — nunca apaga nada. Faça backup antes de qualquer alteração grande no Railway.
+    </p>
+  </div>
+
+  <div class="panel panel-pad" style="margin-bottom:20px;">
+    <div class="section-title" style="font-size:1rem;margin-bottom:10px;"><i class="bi bi-file-earmark-spreadsheet"></i>Arquivo em uso</div>
+    <p class="small muted" style="margin-bottom:16px;">
+      A lista mestra é carregada <strong>diretamente do arquivo</strong> no repositório ao iniciar o servidor.
+      Para atualizar: substitua o arquivo <code>lista_mestra.xlsx</code> (ou <code>.csv</code>/<code>.txt</code>) na raiz do projeto, faça commit e redeploy no Railway.<br><br>
+      O sistema detecta as colunas pelo nome no cabeçalho: <code>Ordem</code>, <code>Material</code>, <code>Texto breve material</code> e <code>Quantidade da ordem</code> — a ordem das colunas não importa.
+    </p>
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:var(--bg-card, #1e2330);border-radius:8px;border:1px solid var(--line);">
+      <div>
+        <span class="small muted">Arquivo detectado:</span><br>
+        <strong>{{ arquivo_info }}</strong>
+      </div>
+      <div>
+        <span class="small muted">Status:</span><br>
+        {% if status.carregada %}
+          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> Carregada — {{ total_itens }} ordens</span>
+        {% else %}
+          <span class="pill pill-prep"><i class="bi bi-exclamation-triangle-fill"></i> Erro: {{ status.erro }}</span>
+        {% endif %}
+      </div>
+      <form method="POST" style="margin-left:auto;">
+        <input type="hidden" name="acao" value="recarregar">
+        <button class="btn btn-secondary" type="submit"><i class="bi bi-arrow-clockwise"></i>Recarregar da memória</button>
+      </form>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:var(--bg-card,#1e2330);border-radius:8px;border:1px solid var(--line);margin-top:12px;">
+      <div>
+        <span class="small muted">Área/Peso (arquivo):</span><br>
+        <strong>{{ areapeso_info }}</strong>
+      </div>
+      <div>
+        <span class="small muted">Status:</span><br>
+        {% if areapeso_status.carregada %}
+          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> Carregada — {{ areapeso_status.total }} códigos</span>
+        {% else %}
+          <span class="pill pill-prep"><i class="bi bi-exclamation-triangle-fill"></i> {{ areapeso_status.erro }}</span>
+        {% endif %}
+      </div>
+      <div class="small muted" style="margin-left:auto;max-width:340px;">
+        Para atualizar: substitua <code>area_peso.xlsx</code> na raiz do projeto, commit e redeploy. Colunas: <code>Codigo Sap</code>, <code>Area de Superficie</code>, <code>Peso</code>.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);">
+      <span class="section-title" style="font-size:1rem;">Ordens em memória (amostra)</span>
+      <span class="pill pill-banho">{{ total_itens }} ordens</span>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr><th>Ordem (OP)</th><th>Material (código)</th><th>Texto breve</th><th>Qtd total</th></tr></thead>
+        <tbody>
+          {% for i in amostra %}
+          <tr><td><strong>{{ i.ordem }}</strong></td><td>{{ i.material }}</td><td><span class="small">{{ i.texto_breve }}</span></td><td class="mono">{{ i.quantidade }}</td></tr>
+          {% else %}
+          <tr><td colspan="4" class="empty"><i class="bi bi-inbox"></i>Nenhuma ordem carregada. Verifique se o arquivo existe na raiz do projeto.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if total_itens > amostra|length %}<p class="small muted" style="padding:12px 20px;margin:0;">Mostrando {{ amostra|length }} de {{ total_itens }} ordens em memória.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// indicador de banco (PostgreSQL seguro vs SQLite perigoso)
+async function carregarDbStatus(){
+  const box=document.getElementById('dbStatusBox');
+  try{
+    const d=await (await fetch('/api/admin/db_status')).json();
+    if(d.seguro){
+      box.style.background='rgba(43,164,92,.10)';
+      box.style.borderColor='#2BA45C';
+      box.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'+
+        '<i class="bi bi-shield-fill-check" style="color:#2BA45C;font-size:1.4rem;"></i>'+
+        '<div><strong style="color:#1E9E57;">PostgreSQL conectado — dados seguros</strong><br>'+
+        '<span class="small muted">'+d.cards+' cestos e '+d.usuarios+' usuários no banco permanente. Seus dados não se perdem em deploys.</span></div></div>';
+    }else{
+      box.style.background='rgba(214,71,63,.10)';
+      box.style.borderColor='#D6473F';
+      box.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'+
+        '<i class="bi bi-exclamation-triangle-fill" style="color:#D6473F;font-size:1.4rem;"></i>'+
+        '<div><strong style="color:#A8322B;">ATENÇÃO: usando SQLite temporário!</strong><br>'+
+        '<span class="small muted">Os dados se perderão no próximo deploy. No Railway, no serviço <strong>web</strong>, adicione a variável <code>DATABASE_URL = ${{Postgres.DATABASE_URL}}</code> e refaça o deploy.</span></div></div>';
+    }
+  }catch(e){
+    box.innerHTML='<span class="small muted">Não foi possível verificar o banco.</span>';
+  }
+}
+async function restaurarBackup(input){
+  if(!input.files||!input.files[0])return;
+  const msg=document.getElementById('restaurarMsg');
+  msg.textContent='Restaurando…';msg.style.color='';
+  const fd=new FormData();fd.append('arquivo',input.files[0]);
+  try{
+    const r=await fetch('/api/admin/restaurar',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.sucesso){
+      msg.style.color='#1E9E57';
+      msg.textContent=`Restaurado: ${d.cards} cestos e ${d.usuarios} usuários adicionados.`;
+      carregarDbStatus();
+    }else{
+      msg.style.color='#D6473F';msg.textContent='Erro: '+(d.erro||'falhou');
+    }
+  }catch(e){msg.style.color='#D6473F';msg.textContent='Erro ao restaurar.';}
+  input.value='';
+}
+carregarDbStatus();
+</script>
+{% endblock %}
