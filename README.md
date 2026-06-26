@@ -1,72 +1,138 @@
-# Controle de Produtividade Banho — Pintura Eletrostatica
+# Controle de Produtividade Banho — Pintura Eletrostática
 
-Monitoramento em tempo real do tratamento de pecas (pre-banho e banho):
-grade de 19 cestos, leitura da OP por coletora, pausa de tempo, multiplas OPs
-por cesto, 1 ou 2 operadores, dashboards, painel publico e Excel. Roda 24h no
-Railway com PostgreSQL. Otimizado para tablet (Samsung Galaxy Tab A9).
+Sistema de monitoramento em tempo real do tratamento de peças, do **pré-banho**
+(preparação dos cestos) ao **banho**, com grade visual de cestos, leitura de
+código de barras da OP, dashboards, painel público para a gerência e
+exportação de relatórios em Excel. Feito para rodar 24h na nuvem (Railway) com
+banco PostgreSQL, e otimizado para tablets (Samsung Galaxy Tab A9).
 
-==================================================================
-IMPORTANTE: como subir sem erro
-==================================================================
-1. Os arquivos tem que ficar na RAIZ do repositorio. O app.py precisa
-   aparecer DIRETO na pagina do repo, nao dentro de uma pasta.
-2. NAO adicione nixpacks.toml. O Railway/Nixpacks instala as dependencias
-   sozinho pelo requirements.txt. (Um nixpacks.toml com 'pip install' quebra
-   o build com 'pip: command not found'.)
-3. O comando de start usa 'python -m gunicorn' (no Procfile e railway.json) —
-   isso evita o erro 'gunicorn: command not found'.
+---
 
-Se voce ja tinha subido uma versao antiga: APAGUE todos os arquivos do repo
-(inclusive nixpacks.toml, start.sh, runtime.txt se existirem) e suba estes.
+## Fluxo (sem etapa de aprovação do líder)
 
-==================================================================
-Fluxo de uso
-==================================================================
-1. Preparacao: grade de cestos 1-19 (livres coloridos, em uso com cadeado).
-   Toca num livre -> escolhe 1 ou 2 operadores -> Iniciar (cronometro comeca).
-2. Pode Pausar (cafe, ginastica) — tempo parado nao conta — e Retomar.
-3. Ao terminar, toca em Parar tempo (cronometro congela). DEPOIS preenche:
-   botao Adicionar OP (pode por VARIAS OPs no mesmo cesto; cada uma puxa
-   codigo/descricao/qtd da lista mestra, editaveis), processo, tipo, e conclui.
-   Vai para a fila do banho.
-4. Banho: operador inicia e finaliza. O cesto volta a ficar livre.
-5. Qualquer card pode ser editado depois (tocar no cesto ocupado).
+1. **Operador de preparação** abre a tela e vê a **grade de cestos 1 a 19**.
+   Cestos livres aparecem coloridos; cestos em uso aparecem com **cadeado**.
+2. Toca num cesto livre → **Iniciar preparação** (cronômetro começa).
+3. Ao terminar de encher o cesto, toca no cesto de novo, **bipa o código de
+   barras da OP** (preenche código/material, texto breve e quantidade a partir
+   da lista mestra — tudo editável), escolhe processo, tipo e observação, e
+   conclui. O cesto **vai direto para a fila do banho**.
+4. **Operador de banho** vê a fila, inicia o banho (novo cronômetro) e finaliza
+   quando o cesto sai. Aí o cesto **volta a ficar livre** na grade.
+5. Qualquer card pode ser **editado** depois de criado (tocar no cesto ocupado),
+   para corrigir informação errada.
 
-==================================================================
-Usuarios padrao (criados na 1a execucao — troque as senhas)
-==================================================================
-  admin / admin123   -> admin (dashboard, usuarios, lista mestra, Excel)
-  banho / banho123   -> operador de banho
-  op1..op6 / op1234  -> operadores de preparacao
+Todas as telas atualizam sozinhas a cada poucos segundos.
 
-==================================================================
-Deploy no Railway
-==================================================================
-1. Suba os arquivos na RAIZ do repo no GitHub (app.py direto, nao em pasta).
-2. railway.app -> New Project -> Deploy from GitHub repo -> escolha o repo.
-3. New -> Database -> Add PostgreSQL (cria DATABASE_URL automaticamente).
-4. No servico web, em Variables, adicione SECRET_KEY = uma frase longa.
-5. Settings -> Networking -> Generate Domain para a URL publica.
+---
 
-Painel da gerencia (so leitura, sem senha): SUA_URL/painel
+## Telas e acessos
 
-==================================================================
-Lista mestra (Excel do SAP)
-==================================================================
-Tela Lista Mestra (admin) -> importar .xlsx do SAP. Colunas usadas:
-Ordem (OP), Material (codigo), Texto breve material, Quantidade total.
-Ao bipar a OP na preparacao, esses dados preenchem o item automaticamente.
-Use o campo "Testar uma OP" para conferir se foi importada.
+| Caminho | Quem | O que faz |
+|---------|------|-----------|
+| `/preparacao` | operadores de prep (e banho) | grade de cestos, abrir/preencher/editar |
+| `/banho` | operador de banho | fila e cronômetro de banho |
+| `/dashboard` | admin | KPIs, gráficos, histórico, **export Excel** |
+| `/painel` | **público (sem senha)** | só leitura, para a gerência, com filtro por data |
+| `/admin/mestre` | admin | importar a lista mestra do SAP |
+| `/admin/usuarios` | admin | criar/remover usuários, trocar senha |
 
-==================================================================
-Relatorios / backup
-==================================================================
-Dashboard -> Excel pre-banho e Excel banho (uma linha por OP, com data/hora
-no nome do arquivo). Dados no PostgreSQL nao se perdem em reinicio/deploy.
+### Usuários criados automaticamente (troque as senhas depois)
 
-==================================================================
-Rodar local
-==================================================================
-  pip install -r requirements.txt
-  python app.py    (http://localhost:5000)
-Sem DATABASE_URL usa SQLite local (dados_local.db) so para teste.
+| Login | Senha | Perfil |
+|-------|-------|--------|
+| `admin` | `admin123` | admin |
+| `banho` | `banho123` | operador de banho |
+| `op1`…`op6` | `op1234` | operador de preparação |
+
+São 3 perfis: **prep** (pré-banho, pode ter vários), **banho** (normalmente 1,
+mas pode criar mais) e **admin**. O admin cria quantos usuários quiser na tela
+de Usuários.
+
+---
+
+## Lista mestra (relatório do SAP)
+
+Na tela "Lista Mestra", o admin importa o relatório do SAP em **.xlsx** ou
+**.csv/.txt** (separado por TAB). O sistema usa estas colunas:
+
+```
+Ordem | Nº do item | Material | Texto breve material | Quantidade total | ...
+```
+
+- **Ordem** = a OP (o que é bipado)
+- **Material** = código
+- **Texto breve material** = descrição
+- **Quantidade total** = quantidade
+
+O histórico guarda exatamente: **OP, Código, Texto breve do material e
+Quantidade total**. Veja `exemplo_lista_mestra_sap.txt`.
+
+---
+
+## Relatórios e backup
+
+No dashboard do admin há dois botões de exportação Excel, para você salvar
+backups quando quiser:
+
+- **Excel pré-banho** — dados e tempos da preparação.
+- **Excel banho** — dados e tempos do banho.
+
+Cada arquivo vem com data/hora no nome. Os dados ficam no PostgreSQL, então
+**nunca se perdem** em reinício/deploy.
+
+---
+
+## Deploy — GitHub + Railway
+
+### 1) GitHub
+```bash
+cd v2
+git init
+git add .
+git commit -m "Controle de Produtividade Banho"
+git branch -M main
+git remote add origin https://github.com/SEU_USUARIO/SEU_REPO.git
+git push -u origin main
+```
+
+### 2) Railway
+1. railway.app → **New Project → Deploy from GitHub repo** → escolha o repo.
+2. **New → Database → Add PostgreSQL** (cria `DATABASE_URL` automaticamente).
+3. No serviço web, em **Variables**, adicione `SECRET_KEY` = uma frase longa e
+   aleatória.
+4. O Railway sobe com gunicorn (via `Procfile`). Em **Settings → Networking →
+   Generate Domain** para obter a URL pública.
+
+> Sem o PostgreSQL conectado, o app usa um SQLite local que **se perde** a cada
+> reinício. Para uso 24/7, adicionar o PostgreSQL (passo 2) é obrigatório.
+
+O painel da gerência fica em `SUA_URL/painel` (link aberto, só leitura).
+
+---
+
+## Rodar localmente
+
+```bash
+pip install -r requirements.txt
+python app.py    # http://localhost:5000
+```
+
+Sem `DATABASE_URL`, usa SQLite local (`dados_local.db`) só para teste.
+
+---
+
+## Estrutura
+
+```
+v2/
+├── app.py
+├── requirements.txt   Procfile   railway.json   runtime.txt   .gitignore
+├── exemplo_lista_mestra_sap.txt
+├── static/
+│   ├── style.css
+│   └── dash.js
+└── templates/
+    ├── base.html  login.html  prep.html  banho.html
+    ├── dashboard.html  painel.html  usuarios.html  mestre.html
+```

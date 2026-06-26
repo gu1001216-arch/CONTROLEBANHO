@@ -3,312 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel de Acompanhamento — Controle Produtividade Pré-Banho e Banho</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<title>Painel de Acompanhamento — Produtividade Banho</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <main class="page">
   <div class="public-banner">
-    <div style="display:flex;align-items:center;gap:14px;">
-      <img src="{{ url_for('static', filename='logo_decio.png') }}" alt="Décio" style="width:50px;height:50px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(20,32,46,.18);">
-      <div>
-        <div style="font-size:.64rem;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:var(--brand-blue);">Décio · Indústria Metalúrgica</div>
-        <h1 style="margin:0;"><i class="bi bi-droplet-half"></i>Acompanhamento — Pré-Banho e Banho</h1>
-      </div>
-    </div>
+    <h1><i class="bi bi-droplet-half"></i>Acompanhamento da Produção — Banho</h1>
     <span class="small" style="display:flex;align-items:center;gap:7px;"><span class="live-dot"></span>Atualização automática · somente visualização</span>
   </div>
 
-  <div class="panel panel-brand panel-pad" style="margin-bottom:18px;overflow:hidden;">
-    <input type="hidden" id="fDe"><input type="hidden" id="fAte">
-    <div class="section-title brand" style="font-size:1.1rem;margin-bottom:18px;display:flex;align-items:center;gap:12px;">Filtros</div>
-    <div class="filtros-row">
-
-      <!-- Linha do tempo (slicer estilo Excel) -->
-      <div style="flex:1 1 420px;min-width:0;max-width:560px;">
-        <label class="filtro-label">Linha do tempo <span class="filtro-hint">— clique ou arraste para selecionar</span></label>
-        <div class="slicer">
-          <div class="slicer-head">
-            <span class="slicer-title">Data</span>
-            <div class="slicer-tools">
-              <button class="slicer-nivel" id="slicerNivel" onclick="alternarNivel()">MESES <i class="bi bi-chevron-down"></i></button>
-              <button class="slicer-clear" id="slicerClear" onclick="limparSlicer()" title="Limpar filtro"><i class="bi bi-funnel"></i></button>
-            </div>
-          </div>
-          <div class="slicer-periodo" id="slicerPeriodo">Todos os períodos</div>
-          <div class="slicer-track-wrap">
-            <div class="slicer-track" id="slicerTrack"></div>
-          </div>
-          <div class="slicer-scroll"><div class="slicer-scroll-thumb" id="slicerThumb"></div></div>
-        </div>
-      </div>
-
-      <!-- Busca por OP / código / descrição -->
-      <div style="flex:1;min-width:280px;">
-        <label class="filtro-label">OP / Código / Item <span class="filtro-hint">— digite a OP, o código ou a descrição</span></label>
-        <div class="busca-combo">
-          <i class="bi bi-search busca-icon"></i>
-          <input id="buscaItem" type="text" autocomplete="off" placeholder="Todas as OPs e itens" class="busca-input" oninput="filtrarBusca()">
-          <button id="buscaClear" class="busca-clear" onclick="limparBusca()" style="display:none;">&times;</button>
-        </div>
-        <p class="filtro-desc">Filtre o <strong>histórico</strong> por número da OP, código do item ou descrição da peça.</p>
-      </div>
-
+  <div class="panel panel-pad" style="margin-bottom:18px;">
+    <div class="filter-bar" style="margin:0;">
+      <div><label class="label">De</label><input type="date" id="fDe" class="input input-sm"></div>
+      <div><label class="label">Até</label><input type="date" id="fAte" class="input input-sm"></div>
     </div>
   </div>
 
-  <!-- Cestos ativos agora -->
-  <div class="area-titulo">Cestos ativos agora</div>
-  <div class="panel panel-brand panel-pad" style="margin-bottom:22px;">
-    <div id="ativosLista" class="ativos-grid"><div class="muted small">Carregando…</div></div>
-  </div>
-
-  <div class="area-titulo">Quantidade de cestos</div>
   <div class="kpi-row">
     <div class="kpi"><div class="kpi-val" id="kTotal">0</div><div class="kpi-lbl"><i class="bi bi-check2-all"></i>Concluídos</div></div>
     <div class="kpi k-amber"><div class="kpi-val" id="kAnd">0</div><div class="kpi-lbl"><i class="bi bi-hourglass-split"></i>Em andamento</div></div>
-    <div class="kpi k-green"><div class="kpi-val" id="kBanhoNormal">0</div><div class="kpi-lbl"><i class="bi bi-droplet"></i>Banho normal</div></div>
-    <div class="kpi k-red"><div class="kpi-val" id="kBanhoRetrab">0</div><div class="kpi-lbl"><i class="bi bi-arrow-repeat"></i>Banho retrabalho</div></div>
+    <div class="kpi k-green"><div class="kpi-val" id="kNormais">0</div><div class="kpi-lbl"><i class="bi bi-check-circle"></i>Normais</div></div>
+    <div class="kpi k-red"><div class="kpi-val" id="kRetrab">0</div><div class="kpi-lbl"><i class="bi bi-arrow-repeat"></i>Retrabalhos</div></div>
+    <div class="kpi k-violet"><div class="kpi-val" id="kPrep">0</div><div class="kpi-lbl"><i class="bi bi-stopwatch"></i>Méd. prep (min)</div></div>
+    <div class="kpi k-sky"><div class="kpi-val" id="kBanho">0</div><div class="kpi-lbl"><i class="bi bi-droplet"></i>Méd. banho (min)</div></div>
   </div>
 
-  <div class="area-titulo">Tempo médio (min)</div>
-  <div class="kpi-row">
-    <div class="kpi k-violet"><div class="kpi-val" id="kPrep">0</div><div class="kpi-lbl"><i class="bi bi-stopwatch"></i>Preparo</div></div>
-    <div class="kpi k-amber"><div class="kpi-val" id="kEspera">0</div><div class="kpi-lbl"><i class="bi bi-hourglass-split"></i>Espera (fila)</div></div>
-    <div class="kpi k-sky"><div class="kpi-val" id="kBanho">0</div><div class="kpi-lbl"><i class="bi bi-droplet"></i>Banho</div></div>
-  </div>
-
-  <div class="area-titulo"><i class="bi bi-bar-chart-line"></i>Totais processados</div>
-  <div class="kpi-row">
-    <div class="kpi k-teal"><div class="kpi-val" id="kPecas">0</div><div class="kpi-lbl"><i class="bi bi-stack"></i>Peças totais</div></div>
-    <div class="kpi k-teal"><div class="kpi-val" id="kArea">0</div><div class="kpi-lbl"><i class="bi bi-rulers"></i>Área total (m²)</div></div>
-  </div>
-
-  <div class="panel panel-brand panel-pad" style="margin-bottom:18px;">
+  <div class="panel panel-pad" style="margin-bottom:18px;">
     <div class="section-title" style="font-size:1rem;margin-bottom:14px;"><i class="bi bi-diagram-3-fill"></i>Andamento em tempo real</div>
     <div id="andamento" class="andamento-grid"><div class="muted small">Carregando…</div></div>
   </div>
 
   <div class="chart-grid-3">
-    <div class="chart-box"><h6><i class="bi bi-pie-chart-fill"></i>Cestos processados: Normal × Retrabalho</h6><canvas id="chartTipo" height="200"></canvas></div>
-    <div class="chart-box"><h6><i class="bi bi-bar-chart-fill"></i>Cestos por tipo de processo</h6><canvas id="chartProc" height="200"></canvas></div>
-    <div class="chart-box"><h6><i class="bi bi-graph-up"></i>Cestos processados por dia</h6><canvas id="chartDia" height="200"></canvas></div>
-  </div>
-
-  <div class="chart-grid" style="grid-template-columns:1fr;">
-    <div class="chart-box"><h6><i class="bi bi-rulers"></i>Área processada por dia (m²)</h6><canvas id="chartArea" height="180"></canvas></div>
-  </div>
-
-  <div class="section-title" style="font-size:1rem;margin:18px 0 14px;"><i class="bi bi-clock-history"></i>Histórico dos cestos concluídos</div>
-  <div class="panel" style="overflow:hidden;">
-    <div class="table-wrap">
-      <table class="tbl">
-        <thead><tr>
-          <th>#</th><th>Cesto</th><th>OP</th><th>Código</th><th>Texto breve</th><th>Qtd</th>
-          <th>Processo</th><th>Tipo</th><th>Prep</th><th>Banho</th><th>Fim</th>
-        </tr></thead>
-        <tbody id="histBody"><tr><td colspan="11" class="empty">Carregando…</td></tr></tbody>
-      </table>
-    </div>
+    <div class="chart-box"><h6><i class="bi bi-pie-chart-fill"></i>Normal × Retrabalho</h6><canvas id="chartTipo" height="200"></canvas></div>
+    <div class="chart-box"><h6><i class="bi bi-bar-chart-fill"></i>Por processo</h6><canvas id="chartProc" height="200"></canvas></div>
+    <div class="chart-box"><h6><i class="bi bi-graph-up"></i>Concluídos por dia</h6><canvas id="chartDia" height="200"></canvas></div>
   </div>
 </main>
+
+<!-- Modal de detalhes do cesto -->
+<div class="modal-overlay" id="modalDetalhes">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head">
+      <h5><i class="bi bi-box-seam"></i><span id="detTitulo">Detalhes</span></h5>
+      <button class="modal-x" onclick="fecharDetalhes()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body" id="detCorpo" style="padding:20px;"></div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>window.DASH_ENDPOINT='/api/painel/dados';</script>
 <script src="{{ url_for('static', filename='dash.js') }}"></script>
-<script>
-// ── Cestos ativos agora (tempo + onde estão) ───────────────────────────────
-const ESTADO_INFO={
-  PREPARANDO:{t:'Preparando',c:'#F59E0B',i:'hourglass-split'},
-  PREENCHER:{t:'Preenchendo',c:'#64748b',i:'pencil-square'},
-  FILA_BANHO:{t:'Fila do banho',c:'#7C5CFC',i:'list-ol'},
-  EM_BANHO:{t:'Em banho',c:'#1668C0',i:'droplet-fill'},
-};
-let _offset=0;
-async function _sincronizar(){
-  try{const t0=Date.now();const j=await (await fetch('/api/agora')).json();const t1=Date.now();
-    _offset=new Date(j.agora_iso).getTime()+(t1-t0)/2-t1;}catch(_){_offset=0;}
-}
-function _agora(){return Date.now()+_offset;}
-function _fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;
-  const mm=String(m).padStart(2,'0'),xx=String(x).padStart(2,'0');return h>0?`${h}:${mm}:${xx}`:`${mm}:${xx}`;}
-function _segDe(iso){if(!iso)return 0;return Math.max(0,Math.floor((_agora()-new Date(iso).getTime())/1000));}
-
-async function carregarAtivos(){
-  try{
-    const d=await (await fetch('/api/painel/dados')).json();
-    const el=document.getElementById('ativosLista');
-    if(!el)return;
-    const ativos=(d.ativos||[]);
-    if(!ativos.length){el.innerHTML='<div class="muted small">Nenhum cesto ativo no momento.</div>';return;}
-    el.innerHTML=ativos.map(c=>{
-      const e=ESTADO_INFO[c.estado]||{t:c.estado,c:'#888',i:'circle'};
-      let cron='—',ini='';
-      if(c.estado==='EM_BANHO'){ini=c.banho_inicio_iso;}
-      else if(c.estado==='PREPARANDO'&&!c.pausado){ini=c.prep_inicio_iso;}
-      const temCron=!!ini;
-      return `<div class="ativo-card" style="border-left:4px solid ${e.c};">
-        <div class="ativo-top">
-          <span class="ativo-cesto">Cesto ${c.numero_cesto}</span>
-          <span class="ativo-estado" style="background:${e.c}1a;color:${e.c};"><i class="bi bi-${e.i}"></i>${e.t}${c.pausado?' (pausado)':''}</span>
-        </div>
-        <div class="ativo-info">${c.n_itens>1?(c.n_itens+' OPs'):('OP '+(c.ordem||'—'))} · ${c.qtd_total||0} pç</div>
-        ${temCron?`<div class="ativo-cron cron-el" data-ini="${ini}">${_fmt(_segDe(ini))}</div>`:`<div class="ativo-cron muted" style="font-size:1rem;">aguardando</div>`}
-      </div>`;
-    }).join('');
-  }catch(_){}
-}
-function tickAtivos(){
-  document.querySelectorAll('#ativosLista .cron-el[data-ini]').forEach(e=>{
-    e.textContent=_fmt(_segDe(e.dataset.ini));
-  });
-}
-
-// ── Slicer estilo Excel (meses ou dias) ────────────────────────────────────
-const MESES_PT=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-let _nivel='meses';        // 'meses' ou 'dias'
-let _segmentos=[];         // [{lbl, ano, dias:[...], iniIdx}]
-let _selIni=null,_selFim=null,_arrastando=false;
-let _diasDisponiveis=[];   // ['dd/mm', ...]
-
-async function montarSlicer(){
-  const track=document.getElementById('slicerTrack');
-  if(!track)return;
-  if(track.querySelector('.slicer-seg.sel'))return; // preserva seleção do usuário
-  try{
-    const d=await (await fetch('/api/painel/dados')).json();
-    _diasDisponiveis=Object.keys(d.por_dia||{});
-    construirSegmentos();
-    renderSlicer();
-  }catch(_){}
-}
-
-function construirSegmentos(){
-  const ano=new Date().getFullYear();
-  if(_nivel==='meses'){
-    // 12 meses do ano atual
-    _segmentos=MESES_PT.map((m,i)=>({lbl:m,ano:ano,mes:i+1,
-      qtd:_diasDisponiveis.filter(dia=>+dia.split('/')[1]===i+1).length}));
-  }else{
-    // dias: gera os últimos 31 dias OU os dias que têm dados (o que for mais útil)
-    // aqui usamos um range dos dias com dados, preenchendo os intermediários
-    const set=new Set(_diasDisponiveis);
-    const hoje=new Date();
-    _segmentos=[];
-    for(let k=30;k>=0;k--){
-      const dt=new Date(hoje);dt.setDate(hoje.getDate()-k);
-      const dd=String(dt.getDate()).padStart(2,'0');
-      const mm=String(dt.getMonth()+1).padStart(2,'0');
-      const dia=`${dd}/${mm}`;
-      _segmentos.push({lbl:dd,sub:MESES_PT[dt.getMonth()],ano:dt.getFullYear(),mes:dt.getMonth()+1,diaNum:dt.getDate(),temDado:set.has(dia),diaStr:dia});
-    }
-  }
-}
-
-function renderSlicer(){
-  const track=document.getElementById('slicerTrack');
-  track.innerHTML=_segmentos.map((s,i)=>{
-    const sub=_nivel==='meses'?(i===0||_segmentos[i-1].ano!==s.ano?`<span class="slicer-seg-ano">${s.ano}</span>`:''):(s.sub||'');
-    const top=_nivel==='meses'?s.lbl:`${s.sub||''}`;
-    const lblTop=_nivel==='meses'?`<span class="slicer-seg-ano" style="visibility:${(i===0||_segmentos[i-1].ano!==s.ano)?'visible':'hidden'}">${s.ano}</span>`:`<span class="slicer-seg-ano">${(i===0||_segmentos[i-1].mes!==s.mes)?s.sub:''}</span>`;
-    return `<div class="slicer-seg" data-idx="${i}">
-      <span class="slicer-seg-lbl">${lblTop}${s.lbl}</span>
-      <span class="slicer-bar"></span>
-    </div>`;
-  }).join('');
-  // eventos de clique/arraste (funciona em mouse e em toque)
-  [...track.querySelectorAll('.slicer-seg')].forEach(seg=>{
-    seg.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      _arrastando=true;_selIni=_selFim=+seg.dataset.idx;pintarSel();
-    });
-  });
-  pintarSel();
-}
-// movimento e fim do arraste a nível de documento (robusto no toque)
-document.addEventListener('pointermove',e=>{
-  if(!_arrastando)return;
-  const alvo=document.elementFromPoint(e.clientX,e.clientY);
-  const seg=alvo&&alvo.closest?alvo.closest('.slicer-seg'):null;
-  if(seg){_selFim=+seg.dataset.idx;pintarSel();}
-});
-document.addEventListener('pointerup',()=>{if(_arrastando){_arrastando=false;aplicarSlicer();}});
-
-function pintarSel(){
-  if(_selIni===null){document.querySelectorAll('.slicer-seg').forEach(s=>s.classList.remove('sel'));return;}
-  const lo=Math.min(_selIni,_selFim),hi=Math.max(_selIni,_selFim);
-  document.querySelectorAll('.slicer-seg').forEach(s=>{const i=+s.dataset.idx;s.classList.toggle('sel',i>=lo&&i<=hi);});
-}
-
-function nomeMes(i){return ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][i];}
-
-function aplicarSlicer(){
-  if(_selIni===null)return;
-  const lo=Math.min(_selIni,_selFim),hi=Math.max(_selIni,_selFim);
-  const a=_segmentos[lo],b=_segmentos[hi];
-  const ano=new Date().getFullYear();
-  let de,ate,txt;
-  if(_nivel==='meses'){
-    de=`${a.ano}-${String(a.mes).padStart(2,'0')}-01`;
-    const ultimoDia=new Date(b.ano,b.mes,0).getDate();
-    ate=`${b.ano}-${String(b.mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
-    txt=lo===hi?`${nomeMes(a.mes-1)} de ${a.ano}`:`${nomeMes(a.mes-1)} de ${a.ano} – ${nomeMes(b.mes-1)} de ${b.ano}`;
-  }else{
-    de=`${a.ano}-${String(a.mes).padStart(2,'0')}-${String(a.diaNum).padStart(2,'0')}`;
-    ate=`${b.ano}-${String(b.mes).padStart(2,'0')}-${String(b.diaNum).padStart(2,'0')}`;
-    txt=lo===hi?`${a.lbl} ${a.sub} ${a.ano}`:`${a.lbl} ${a.sub} – ${b.lbl} ${b.sub} ${b.ano}`;
-  }
-  document.getElementById('fDe').value=de;
-  document.getElementById('fAte').value=ate;
-  document.getElementById('slicerPeriodo').textContent=txt;
-  document.getElementById('slicerClear').classList.add('ativo');
-  if(window.atualizar)window.atualizar();
-}
-
-function alternarNivel(){
-  _nivel=(_nivel==='meses')?'dias':'meses';
-  document.getElementById('slicerNivel').innerHTML=(_nivel==='meses'?'MESES':'DIAS')+' <i class="bi bi-chevron-down"></i>';
-  _selIni=_selFim=null;
-  construirSegmentos();renderSlicer();
-}
-function limparSlicer(){
-  _selIni=_selFim=null;
-  document.querySelectorAll('.slicer-seg').forEach(s=>s.classList.remove('sel'));
-  document.getElementById('fDe').value='';
-  document.getElementById('fAte').value='';
-  document.getElementById('slicerPeriodo').textContent='Todos os períodos';
-  document.getElementById('slicerClear').classList.remove('ativo');
-  if(window.atualizar)window.atualizar();
-}
-
-// ── Busca por OP / código / descrição (filtra a tabela de histórico) ───────
-let _termoBusca='';
-function filtrarBusca(){
-  _termoBusca=(document.getElementById('buscaItem').value||'').toLowerCase().trim();
-  document.getElementById('buscaClear').style.display=_termoBusca?'flex':'none';
-  aplicarBuscaHistorico();
-}
-function limparBusca(){
-  document.getElementById('buscaItem').value='';
-  _termoBusca='';
-  document.getElementById('buscaClear').style.display='none';
-  aplicarBuscaHistorico();
-}
-function aplicarBuscaHistorico(){
-  document.querySelectorAll('#histBody tr[data-busca]').forEach(tr=>{
-    tr.style.display=(!_termoBusca||tr.dataset.busca.includes(_termoBusca))?'':'none';
-  });
-}
-
-_sincronizar().then(()=>{
-  carregarAtivos();montarSlicer();
-  setInterval(carregarAtivos,5000);
-  setInterval(tickAtivos,1000);
-  setInterval(montarSlicer,30000);
-});
-setInterval(_sincronizar,60000);
-</script>
 </body>
 </html>

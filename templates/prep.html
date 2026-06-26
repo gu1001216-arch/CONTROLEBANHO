@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Preparação — Controle Produtividade{% endblock %}
+{% block title %}Preparação — Produtividade Banho{% endblock %}
 {% block content %}
 
 <div class="section-head">
@@ -28,9 +28,15 @@
       <div id="viewIniciar" style="display:none;">
         <label class="label">Quantos operadores neste cesto?</label>
         <div class="opbtns">
-          <button class="opbtn active" id="op1btn" onclick="setNOper(1)">1</button>
-          <button class="opbtn" id="op2btn" onclick="setNOper(2)">2</button>
-          <button class="opbtn" id="op3btn" onclick="setNOper(3)">3</button>
+          <button class="opbtn active" id="op1btn" onclick="setNOper(1)">1 operador</button>
+          <button class="opbtn" id="op2btn" onclick="setNOper(2)">2 operadores</button>
+        </div>
+        <div class="field" id="boxOp2" style="display:none;margin-top:14px;">
+          <label class="label">Segundo operador</label>
+          <select id="selOp2" class="select input-sm">
+            <option value="">Selecione…</option>
+            {% for o in operadores %}<option>{{ o }}</option>{% endfor %}
+          </select>
         </div>
         <button class="btn btn-aqua btn-block" style="margin-top:20px;" onclick="iniciarPrep()"><i class="bi bi-play-fill"></i>Iniciar preparação</button>
       </div>
@@ -40,9 +46,10 @@
         <div class="cron-big" id="cronBig">00:00</div>
         <div class="cron-status" id="cronStatus"></div>
         <div style="display:flex;gap:10px;margin-top:22px;">
-          <button class="btn btn-ghost" style="flex:1;" id="btnPausa" onclick="pedirPausa()"></button>
-          <button class="btn btn-primary" style="flex:1;" onclick="pedirParar()"><i class="bi bi-stop-fill"></i>Parar tempo</button>
+          <button class="btn btn-ghost" style="flex:1;" id="btnPausa" onclick="togglePausa()"></button>
+          <button class="btn btn-primary" style="flex:1;" onclick="pararTempo()"><i class="bi bi-stop-fill"></i>Parar tempo</button>
         </div>
+        <button class="btn btn-ghost btn-sm btn-block" style="margin-top:10px;" onclick="abrirCorrigir(cardAtual.id,cardAtual.numero_cesto)"><i class="bi bi-pencil"></i>Corrigir nº do cesto / cancelar</button>
         <p class="hint" style="margin-top:14px;">Use <strong>Pausar</strong> para café/ginástica (não conta). <strong>Parar tempo</strong> encerra para preencher.</p>
       </div>
 
@@ -82,45 +89,23 @@
   </div>
 </div>
 
-<!-- Modal de confirmação: Parar tempo -->
-<div class="modal-overlay" id="modalConfParar">
-  <div class="modal" style="max-width:400px;">
-    <div class="modal-head">
-      <h5><i class="bi bi-stop-fill"></i>Confirmar — Parar tempo</h5>
-      <button class="modal-x" onclick="fecharConfParar()"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <div class="modal-body" style="text-align:center;padding:24px 20px;">
-      <p style="margin:0 0 8px;font-size:15px;">Deseja realmente parar o cronômetro de preparação?</p>
-      <p class="hint" style="margin:0;">Após confirmar, o tempo será encerrado e você poderá preencher os dados do cesto.</p>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="fecharConfParar()" style="flex:0 0 auto;">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1;" onclick="confirmarParar()"><i class="bi bi-stop-fill"></i>Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de motivo da pausa -->
-<div class="modal-overlay" id="modalMotivo">
+<!-- Modal corrigir/cancelar cesto -->
+<div class="modal-overlay" id="modalCorrigir">
   <div class="modal" style="max-width:420px;">
     <div class="modal-head">
-      <h5><i class="bi bi-pause-circle"></i>Motivo da pausa</h5>
-      <button class="modal-x" onclick="fecharMotivo()"><i class="bi bi-x-lg"></i></button>
+      <h5><i class="bi bi-pencil-square"></i>Corrigir cesto</h5>
+      <button class="modal-x" onclick="fecharCorrigir()"><i class="bi bi-x-lg"></i></button>
     </div>
-    <div class="modal-body">
-      <div class="motivo-grid">
-        <button class="motivo-btn" onclick="escolherMotivo('Almoço/Janta')"><i class="bi bi-cup-hot"></i>Almoço/Janta</button>
-        <button class="motivo-btn" onclick="escolherMotivo('Café')"><i class="bi bi-cup"></i>Café</button>
-        <button class="motivo-btn" onclick="escolherMotivo('Laboral')"><i class="bi bi-person-arms-up"></i>Laboral</button>
-        <button class="motivo-btn" onclick="escolherMotivo('Outros')"><i class="bi bi-three-dots"></i>Outros</button>
-      </div>
-      <div id="outroMotivo" style="display:none;margin-top:14px;">
-        <label class="label">Descreva o motivo</label>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="outroMotivoTxt" class="input input-sm" placeholder="Ex: manutenção" style="flex:1;">
-          <button class="btn btn-aqua btn-sm" onclick="confirmarOutro()">OK</button>
-        </div>
-      </div>
+    <div class="modal-body" style="padding:22px 20px;">
+      <label class="label">Número correto do cesto</label>
+      <input type="text" id="corrigirNumero" class="input" inputmode="numeric" pattern="[0-9]*" style="margin-bottom:6px;">
+      <p class="hint" id="corrigirMsg" style="margin:0;color:var(--red);"></p>
+    </div>
+    <div class="modal-foot" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-danger btn-sm" onclick="cancelarCesto()" style="flex:0 0 auto;"><i class="bi bi-trash"></i>Cancelar cesto</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost" onclick="fecharCorrigir()" style="flex:0 0 auto;">Voltar</button>
+      <button class="btn btn-primary" onclick="salvarNumero()" style="flex:0 0 auto;"><i class="bi bi-check-lg"></i>Salvar</button>
     </div>
   </div>
 </div>
@@ -132,22 +117,12 @@ const ROTULO={PREPARANDO:'Preparando',PREENCHER:'Preencher',FILA_BANHO:'Na fila'
 let modalEstado='', cestoSel=0, cardAtual=null, nOper=1, itens=[];
 
 function fmtTempo(s){const m=Math.floor(s/60),x=s%60;return `${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;}
-let servidorOffset=0;
-async function sincronizarRelogio(){
-  try{
-    const t0=Date.now();
-    const j=await (await fetch('/api/agora')).json();
-    const t1=Date.now();
-    servidorOffset=new Date(j.agora_iso).getTime()+(t1-t0)/2-t1;
-  }catch(_){servidorOffset=0;}
-}
-function agoraServidor(){return Date.now()+servidorOffset;}
 function segPrep(cd){
   if(!cd.prep_inicio_iso)return 0;
   const ini=new Date(cd.prep_inicio_iso).getTime();
   let p=cd.pausa_acumulada_seg||0;
-  if(cd.pausado&&cd.pausa_inicio_iso)p+=Math.floor((agoraServidor()-new Date(cd.pausa_inicio_iso).getTime())/1000);
-  return Math.max(0,Math.floor((agoraServidor()-ini)/1000)-p);
+  if(cd.pausado&&cd.pausa_inicio_iso)p+=Math.floor((Date.now()-new Date(cd.pausa_inicio_iso).getTime())/1000);
+  return Math.max(0,Math.floor((Date.now()-ini)/1000)-p);
 }
 
 async function carregar(){
@@ -159,17 +134,17 @@ async function carregar(){
       cron=`<span class="cesto-mini-cron prep-cron" data-card='${JSON.stringify(cd).replace(/'/g,"&#39;")}'>${fmtTempo(segPrep(cd))}</span>`;
       if(cd.pausado){cls+=' is-paused';rot='Pausado';}
     }else if(cd.estado==='EM_BANHO'&&cd.banho_inicio_iso){
-      cron=`<span class="cesto-mini-cron cron-el" data-ini="${cd.banho_inicio_iso}">${fmtTempo(Math.max(0,Math.floor((agoraServidor()-new Date(cd.banho_inicio_iso).getTime())/1000)))}</span>`;
+      cron=`<span class="cesto-mini-cron cron-el" data-ini="${cd.banho_inicio_iso}">${fmtTempo(Math.max(0,Math.floor((Date.now()-new Date(cd.banho_inicio_iso).getTime())/1000)))}</span>`;
     }
     const badge=cd.n_itens>1?`<span class="multi-badge">${cd.n_itens} OPs</span>`:'';
-    const op2=cd.n_operadores>1?`<span class="cesto-nop" title="${cd.n_operadores} operadores"><i class="bi bi-people-fill"></i>${cd.n_operadores}</span>`:'';
+    const op2=cd.n_operadores>1?'<i class="bi bi-people-fill cesto-2op" title="2 operadores"></i>':'';
     return `<button class="cesto ocupado ${cls}" onclick='abrirOcupado(${JSON.stringify(cd).replace(/'/g,"&#39;")})'>
       <i class="bi ${cd.pausado?'bi-pause-circle-fill':'bi-lock-fill'} cesto-lock"></i>${op2}
       <span class="cesto-num">${cd.numero_cesto}</span><span class="cesto-tag">${rot}</span>${cron}${badge}</button>`;
   }).join('');
 }
 function tick(){
-  document.querySelectorAll('.cron-el[data-ini]').forEach(e=>{e.textContent=fmtTempo(Math.max(0,Math.floor((agoraServidor()-new Date(e.dataset.ini).getTime())/1000)));});
+  document.querySelectorAll('.cron-el[data-ini]').forEach(e=>{e.textContent=fmtTempo(Math.max(0,Math.floor((Date.now()-new Date(e.dataset.ini).getTime())/1000)));});
   document.querySelectorAll('.prep-cron[data-card]').forEach(e=>{try{e.textContent=fmtTempo(segPrep(JSON.parse(e.dataset.card)));}catch(_){}});
   if(modalEstado==='cron'&&cardAtual&&!cardAtual.pausado)document.getElementById('cronBig').textContent=fmtTempo(segPrep(cardAtual));
 }
@@ -178,11 +153,12 @@ function setNOper(n){
   nOper=n;
   document.getElementById('op1btn').classList.toggle('active',n===1);
   document.getElementById('op2btn').classList.toggle('active',n===2);
-  document.getElementById('op3btn').classList.toggle('active',n===3);
+  document.getElementById('boxOp2').style.display=n===2?'block':'none';
 }
 
 function abrirLivre(num){
   cestoSel=num; modalEstado='iniciar'; cardAtual=null; setNOper(1);
+  document.getElementById('selOp2').value='';
   document.getElementById('mCesto').textContent=num;
   mostrarView('iniciar');
   document.getElementById('modal').classList.add('open');
@@ -230,65 +206,31 @@ function renderItens(){
   const el=document.getElementById('listaItens');
   if(!itens.length){el.innerHTML='<div class="muted small" style="padding:8px 0;">Nenhuma OP ainda. Bipe ou digite abaixo.</div>';return;}
   el.innerHTML=itens.map((it,idx)=>`
-    <div class="item-op-edit">
-      <div class="item-op-head">
-        <span class="item-op-n">${idx+1}</span>
-        <button class="item-op-del" onclick="delItem(${idx})"><i class="bi bi-trash"></i></button>
+    <div class="item-op">
+      <div class="item-op-main">
+        <div class="item-op-top">OP <strong>${it.ordem||'—'}</strong> · cód ${it.material||'—'}</div>
+        <div class="item-op-sub">${it.texto_breve||'sem descrição'}</div>
       </div>
-      <div class="item-grid">
-        <div><label class="mini-label">OP</label><input class="input input-sm" value="${it.ordem||''}" oninput="setCampo(${idx},'ordem',this.value)" inputmode="numeric"></div>
-        <div><label class="mini-label">Código</label><input class="input input-sm" value="${it.material||''}" oninput="setCampo(${idx},'material',this.value)" onblur="buscarPorCodigo(${idx})"></div>
-        <div class="item-grid-full"><label class="mini-label">Descrição</label><input class="input input-sm" value="${(it.texto_breve||'').replace(/"/g,'&quot;')}" oninput="setCampo(${idx},'texto_breve',this.value)"></div>
-        <div><label class="mini-label">Quantidade</label><input type="text" class="input input-sm" value="${it.quantidade||0}" oninput="setCampo(${idx},'quantidade',this.value)" inputmode="numeric" pattern="[0-9]*"></div>
+      <div class="item-op-qtd">
+        <input type="number" class="input input-sm qtd-inp" value="${it.quantidade||0}" onchange="setQtd(${idx},this.value)" inputmode="numeric">
+        <button class="item-op-del" onclick="delItem(${idx})"><i class="bi bi-trash"></i></button>
       </div>
     </div>`).join('');
 }
-function setCampo(i,campo,v){
-  if(campo==='quantidade') itens[i].quantidade=parseInt(v)||0;
-  else itens[i][campo]=v;
-}
+function setQtd(i,v){itens[i].quantidade=parseInt(v)||0;}
 function delItem(i){itens.splice(i,1);renderItens();}
 
-// Quando o item não tem OP: ao digitar o código, puxa a descrição da lista mestra
-async function buscarPorCodigo(i){
-  const it=itens[i];
-  if(!it) return;
-  const cod=(it.material||'').trim();
-  // só busca se tiver código, não tiver OP e a descrição estiver vazia
-  if(!cod || (it.ordem||'').trim() || (it.texto_breve||'').trim()) return;
-  try{
-    const j=await (await fetch('/api/buscar_codigo/'+encodeURIComponent(cod))).json();
-    if(j.encontrado){
-      itens[i].texto_breve=j.texto_breve||'';
-      if(!itens[i].quantidade) itens[i].quantidade=j.quantidade||0;
-      renderItens();
-      document.getElementById('msgOrdem').innerHTML='<span class="txt-ok"><i class="bi bi-check-circle-fill"></i> Descrição encontrada pelo código.</span>';
-    }else{
-      document.getElementById('msgOrdem').innerHTML='<span class="txt-warn"><i class="bi bi-exclamation-circle"></i> Código não encontrado na lista — digite a descrição na mão.</span>';
-    }
-  }catch(_){}
-}
-
 async function addOrdem(){
-  let op=document.getElementById('addOp').value.trim();
+  const op=document.getElementById('addOp').value.trim();
   const msg=document.getElementById('msgOrdem');
-  if(!op){ // adiciona item vazio para digitar tudo na mão
-    itens.push({ordem:'',material:'',texto_breve:'',quantidade:0});
-    renderItens(); return;
-  }
-  // Limpa código de barras: remove 4 dígitos do início e 4 do fim se total > 8 dígitos
-  const soDigitos=op.replace(/\D/g,'');
-  if(soDigitos.length>8){
-    op=soDigitos.slice(4,-4);
-    document.getElementById('addOp').value=op;
-  }
+  if(!op){return;}
   const j=await (await fetch('/api/buscar_ordem/'+encodeURIComponent(op))).json();
   if(j.encontrado){
     itens.push({ordem:j.ordem,material:j.material,texto_breve:j.texto_breve,quantidade:j.quantidade});
-    msg.innerHTML='<span class="txt-ok"><i class="bi bi-check-circle-fill"></i> OP encontrada — preenchida automaticamente.</span>';
+    msg.innerHTML='<span class="txt-ok"><i class="bi bi-check-circle-fill"></i> OP adicionada.</span>';
   }else{
     itens.push({ordem:j.ordem,material:'',texto_breve:'',quantidade:0});
-    msg.innerHTML='<span class="txt-warn"><i class="bi bi-exclamation-circle"></i> OP fora da lista mestra — preencha código, descrição e quantidade na mão.</span>';
+    msg.innerHTML='<span class="txt-warn"><i class="bi bi-exclamation-circle"></i> OP fora da lista mestra — adicionada em branco (edite a qtd).</span>';
   }
   document.getElementById('addOp').value='';
   renderItens();
@@ -304,52 +246,16 @@ function atualizarBotaoPausa(p){
 function fecharModal(){document.getElementById('modal').classList.remove('open');modalEstado='';cardAtual=null;itens=[];}
 
 async function iniciarPrep(){
-  const j=await (await fetch('/api/prep/iniciar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_cesto:cestoSel,n_operadores:nOper})})).json();
+  let op2='';
+  if(nOper===2){op2=document.getElementById('selOp2').value;if(!op2){alert('Selecione o segundo operador.');return;}}
+  const j=await (await fetch('/api/prep/iniciar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_cesto:cestoSel,n_operadores:nOper,operador_prep2:op2})})).json();
   if(j.sucesso){fecharModal();carregar();}else alert(j.erro);
 }
-/* ── Pausar: retomar direto, pausar pede motivo (o modal de motivo É a confirmação) ── */
-function pedirPausa(){
-  if(!cardAtual) return;
-  if(cardAtual.pausado){
-    enviarPausa(null); // retomar sem confirmação
-  } else {
-    abrirMotivo(); // modal de motivo = confirmação de pausa
-  }
-}
-async function togglePausa(){ pedirPausa(); } // alias de compatibilidade
-
-function abrirMotivo(){document.getElementById('modalMotivo').classList.add('open');document.getElementById('outroMotivo').style.display='none';document.getElementById('outroMotivoTxt').value='';}
-function fecharMotivo(){document.getElementById('modalMotivo').classList.remove('open');}
-function escolherMotivo(m){
-  if(m==='Outros'){
-    document.getElementById('outroMotivo').style.display='block';
-    document.getElementById('outroMotivoTxt').focus();
-  }else{
-    enviarPausa(m); fecharMotivo();
-  }
-}
-function confirmarOutro(){
-  const t=document.getElementById('outroMotivoTxt').value.trim();
-  if(!t){alert('Digite o motivo.');return;}
-  enviarPausa(t); fecharMotivo();
-}
-async function enviarPausa(motivo){
-  const body={id:cardAtual.id};
-  if(motivo) body.motivo=motivo;
-  const j=await (await fetch('/api/prep/pausar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+async function togglePausa(){
+  if(!cardAtual)return;
+  const j=await (await fetch('/api/prep/pausar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cardAtual.id})})).json();
   if(j.sucesso){const g=await (await fetch('/api/cestos')).json();const c=g.find(x=>x.ocupado&&x.card.id===cardAtual.id);if(c){cardAtual=c.card;atualizarBotaoPausa(cardAtual.pausado);document.getElementById('cronBig').textContent=fmtTempo(segPrep(cardAtual));}carregar();}
-  else alert(j.erro);
 }
-
-/* ── Parar tempo com modal de confirmação ── */
-function pedirParar(){
-  if(!cardAtual) return;
-  document.getElementById('modalConfParar').classList.add('open');
-}
-function fecharConfParar(){document.getElementById('modalConfParar').classList.remove('open');}
-async function confirmarParar(){fecharConfParar();await pararTempo();}
-document.getElementById('modalConfParar').addEventListener('click',e=>{if(e.target.id==='modalConfParar')fecharConfParar();});
-
 async function pararTempo(){
   if(!cardAtual)return;
   const j=await (await fetch('/api/prep/parar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:cardAtual.id})})).json();
@@ -366,11 +272,35 @@ async function salvar(){
   if(j.sucesso){fecharModal();carregar();}else document.getElementById('msgOrdem').innerHTML=`<span class="txt-err">${j.erro}</span>`;
 }
 document.getElementById('btnSalvar').addEventListener('click',salvar);
-let _downNoOverlay=false;
-document.getElementById('modal').addEventListener('pointerdown',e=>{_downNoOverlay=(e.target.id==='modal');});
-document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal'&&_downNoOverlay)fecharModal();_downNoOverlay=false;});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal();});
 
-sincronizarRelogio().then(()=>{carregar();setInterval(carregar,5000);setInterval(tick,1000);});
-setInterval(sincronizarRelogio,60000);
+// corrigir / cancelar cesto (operador de pré-banho)
+let _corrigirId=null;
+function abrirCorrigir(id,numero){
+  _corrigirId=id;
+  document.getElementById('corrigirNumero').value=numero;
+  document.getElementById('corrigirMsg').textContent='';
+  fecharModal();
+  document.getElementById('modalCorrigir').classList.add('open');
+}
+function fecharCorrigir(){document.getElementById('modalCorrigir').classList.remove('open');_corrigirId=null;}
+async function salvarNumero(){
+  const novo=document.getElementById('corrigirNumero').value;
+  const msg=document.getElementById('corrigirMsg');
+  try{
+    const d=await (await fetch('/api/cesto/mudar_numero',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:_corrigirId,numero_cesto:novo})})).json();
+    if(d.sucesso){fecharCorrigir();carregar();}else{msg.textContent=d.erro||'Não foi possível alterar.';}
+  }catch(e){msg.textContent='Erro ao salvar.';}
+}
+async function cancelarCesto(){
+  if(!confirm('Tem certeza que deseja CANCELAR este cesto? Ele será removido.'))return;
+  const msg=document.getElementById('corrigirMsg');
+  try{
+    const d=await (await fetch('/api/cesto/cancelar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:_corrigirId})})).json();
+    if(d.sucesso){fecharCorrigir();carregar();}else{msg.textContent=d.erro||'Não foi possível cancelar.';}
+  }catch(e){msg.textContent='Erro ao cancelar.';}
+}
+
+carregar();setInterval(carregar,5000);setInterval(tick,1000);
 </script>
 {% endblock %}
