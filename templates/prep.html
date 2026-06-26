@@ -76,9 +76,11 @@
       </div>
     </div>
 
-    <div class="modal-foot" id="footForm" style="display:none;">
+    <div class="modal-foot" id="footForm" style="display:none;flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost btn-sm" id="btnCorrigirForm" onclick="abrirCorrigir(cardAtual.id,cardAtual.numero_cesto)" style="flex:0 0 auto;"><i class="bi bi-pencil"></i>Corrigir nº</button>
+      <div style="flex:1;"></div>
       <button class="btn btn-ghost" onclick="fecharModal()" style="flex:0 0 auto;">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1;" id="btnSalvar"></button>
+      <button class="btn btn-primary" style="flex:0 0 auto;min-width:160px;" id="btnSalvar"></button>
     </div>
   </div>
 </div>
@@ -237,6 +239,9 @@ function abrirOcupado(cd){
       document.getElementById('btnSalvar').innerHTML='<i class="bi bi-save"></i>Salvar correções';
       ci.style.display='flex'; document.getElementById('cronTxt').textContent = cd.estado==='FILA_BANHO'?`Na fila do banho · prep ${cd.prep_minutos} min`:`Em banho · iniciado ${cd.banho_inicio}`;
     }
+    // botão corrigir nº: disponível na fila e ao preencher; oculto se já em banho
+    const bc=document.getElementById('btnCorrigirForm');
+    if(bc) bc.style.display = (cd.estado==='EM_BANHO')?'none':'';
     mostrarView('form');
   }
 }

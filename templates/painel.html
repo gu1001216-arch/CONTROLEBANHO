@@ -14,12 +14,26 @@
     <div style="display:flex;align-items:center;gap:14px;">
       <img src="{{ url_for('static', filename='logo_decio.png') }}" alt="Décio" style="width:50px;height:50px;border-radius:12px;object-fit:cover;box-shadow:0 2px 10px rgba(20,32,46,.18);">
       <div>
-        <div style="font-size:.64rem;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:var(--brand-blue);">Décio · Indústria Metalúrgica</div>
-        <h1 style="margin:0;"><i class="bi bi-droplet-half"></i>Acompanhamento — Pré-Banho e Banho</h1>
+        <div style="font-size:.64rem;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:rgba(255,255,255,.78);">Décio · Indústria Metalúrgica</div>
+        <h1 style="margin:0;"><i class="bi bi-droplet-half"></i>Pré-Banho e Banho · Acompanhamento</h1>
       </div>
     </div>
-    <span class="small" style="display:flex;align-items:center;gap:7px;"><span class="live-dot"></span>Atualização automática · somente visualização</span>
+    <div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+      <span id="relogioPainel" style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:.5px;">--:--:--</span>
+      <span class="small" style="display:flex;align-items:center;gap:7px;opacity:.9;"><span class="live-dot"></span>Ao vivo · somente visualização</span>
+    </div>
   </div>
+
+  <script>
+    (function(){
+      function tic(){
+        var d=new Date();
+        var el=document.getElementById('relogioPainel');
+        if(el)el.textContent=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pt-BR');
+      }
+      tic();setInterval(tic,1000);
+    })();
+  </script>
 
   <div class="panel panel-brand panel-pad" style="margin-bottom:18px;">
     <input type="hidden" id="fDe"><input type="hidden" id="fAte">

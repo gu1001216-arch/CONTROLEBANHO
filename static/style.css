@@ -462,3 +462,58 @@ img,canvas{max-width:100%;}
 
 .btn-danger{background:#D6473F;color:#fff;border:none;}
 .btn-danger:hover{background:#A8322B;color:#fff;}
+
+/* ════════════════════════════════════════════════════════════════
+   REFINAMENTO PROFISSIONAL — acabamento do painel público
+   (apenas polimento visual; não altera estrutura nem lógica)
+   ════════════════════════════════════════════════════════════════ */
+
+/* Banner: respiro maior, hierarquia tipográfica mais nítida */
+.public-banner{padding:22px 26px;border-radius:18px;box-shadow:0 10px 30px rgba(22,104,192,.20);}
+.public-banner h1{font-size:1.42rem;letter-spacing:-.02em;}
+.public-banner h1 i{opacity:.9;}
+
+/* KPIs: números com mais presença, acento gradiente no topo, hover sutil */
+.kpi{transition:transform .18s ease, box-shadow .18s ease;}
+.kpi::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--brand-green),var(--brand-blue));opacity:.85;}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(20,32,46,.12);}
+.kpi-val{font-size:2.35rem;letter-spacing:-.5px;background:linear-gradient(120deg,var(--brand-green),var(--brand-blue));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+/* KPIs coloridos mantêm sua cor própria no número */
+.kpi.k-amber .kpi-val,.kpi.k-red .kpi-val,.kpi.k-green .kpi-val,
+.kpi.k-violet .kpi-val,.kpi.k-sky .kpi-val,.kpi.k-teal .kpi-val{
+  -webkit-text-fill-color:initial;background:none;}
+.kpi-lbl{letter-spacing:.9px;}
+
+/* Títulos de seção: eyebrow mais editorial */
+.area-titulo{font-size:.78rem;letter-spacing:1.4px;color:var(--aco-700);}
+
+/* Cards de cestos ativos: acabamento mais sólido e tátil */
+.ativo-card{border-radius:14px;transition:transform .16s ease, box-shadow .16s ease;}
+.ativo-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(20,32,46,.13);}
+.ativo-cron{letter-spacing:.5px;}
+.ativo-estado{letter-spacing:.3px;}
+
+/* Painéis de gráfico: moldura mais limpa */
+.chart-box{border-radius:16px;transition:box-shadow .18s ease;}
+.chart-box:hover{box-shadow:var(--shadow);}
+.chart-box h6{font-size:.82rem;font-weight:800;letter-spacing:.2px;color:var(--ink);}
+
+/* Tabela de histórico: cabeçalho mais sóbrio, linhas com leitura confortável */
+.tbl thead th{font-size:.68rem;letter-spacing:.6px;}
+.tbl tbody td{padding-top:11px;padding-bottom:11px;}
+.tbl tbody tr{transition:background .12s ease;}
+
+/* Botões pílula: leve elevação ao passar o mouse */
+.btn-primary,.btn-aqua,.btn-secondary{transition:transform .12s ease, box-shadow .18s ease, filter .18s ease;}
+.btn-primary:hover,.btn-aqua:hover,.btn-secondary:hover{transform:translateY(-1px);}
+
+/* Foco visível para acessibilidade (teclado) */
+.btn:focus-visible,.input:focus-visible,.slicer-seg:focus-visible{
+  outline:2px solid var(--brand-blue);outline-offset:2px;}
+
+/* Respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+}
