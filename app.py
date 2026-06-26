@@ -439,6 +439,11 @@ def _area_peso_do_codigo(material):
 
 
 
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     erro = None
