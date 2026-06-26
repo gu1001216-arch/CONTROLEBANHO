@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Lista Mestra — Produtividade Banho{% endblock %}
+{% block title %}Lista Mestra — Controle Produtividade{% endblock %}
 {% block content %}
 <div style="max-width:920px;margin:0 auto;">
   <div class="section-head"><div class="section-title"><i class="bi bi-table"></i>Lista mestra (relatório SAP)</div></div>
@@ -20,57 +20,69 @@
       <span id="restaurarMsg" class="small muted"></span>
     </div>
     <p class="small muted" style="margin:12px 0 0;">
-      O backup salva todos os cestos, usuários e a lista mestra num arquivo no seu computador. A importação <strong>só adiciona</strong> o que não existe — nunca apaga nada. Faça backup antes de qualquer mudança grande.
+      O backup salva todos os cestos e usuários num arquivo no seu computador. A importação <strong>só adiciona</strong> o que não existe — nunca apaga nada. Faça backup antes de qualquer mudança grande.
     </p>
   </div>
 
   <div class="panel panel-pad" style="margin-bottom:20px;">
-    <div class="section-title" style="font-size:1rem;margin-bottom:10px;"><i class="bi bi-file-earmark-spreadsheet"></i>Arquivos em uso (do GitHub)</div>
+    <div class="section-title" style="font-size:1rem;margin-bottom:10px;"><i class="bi bi-file-earmark-spreadsheet"></i>Arquivo em uso</div>
     <p class="small muted" style="margin-bottom:16px;">
-      A lista mestra e o peso/área são carregados <strong>direto dos arquivos</strong> no repositório ao iniciar o servidor.
-      Para atualizar: substitua <code>lista_mestra.xlsx</code> e/ou <code>area_peso.xlsx</code> na raiz do projeto no GitHub, faça commit e o Railway redeploya. Os dados de produção (cestos) não são afetados.
+      A lista mestra é carregada <strong>diretamente do arquivo</strong> no repositório ao iniciar o servidor.
+      Para atualizar: substitua o arquivo <code>lista_mestra.xlsx</code> (ou <code>.csv</code>/<code>.txt</code>) na raiz do projeto, faça commit e redeploy no Railway.<br><br>
+      O sistema detecta as colunas pelo nome no cabeçalho: <code>Ordem</code>, <code>Material</code>, <code>Texto breve material</code> e <code>Quantidade da ordem</code> — a ordem das colunas não importa.
     </p>
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:var(--bg);border-radius:8px;border:1px solid var(--line);">
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:var(--bg-card, #1e2330);border-radius:8px;border:1px solid var(--line);">
       <div>
-        <span class="small muted">Lista mestra:</span><br><strong>{{ arquivo_info }}</strong>
+        <span class="small muted">Arquivo detectado:</span><br>
+        <strong>{{ arquivo_info }}</strong>
       </div>
       <div>
+        <span class="small muted">Status:</span><br>
         {% if status.carregada %}
-          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> {{ total_itens }} ordens</span>
+          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> Carregada — {{ total_itens }} ordens</span>
         {% else %}
-          <span class="pill pill-retrab"><i class="bi bi-exclamation-triangle-fill"></i> {{ status.erro }}</span>
-        {% endif %}
-      </div>
-      <div>
-        <span class="small muted">Peso/Área:</span><br><strong>{{ areapeso_arquivo }}</strong>
-      </div>
-      <div>
-        {% if areapeso_status.carregada %}
-          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> {{ areapeso_status.total }} códigos</span>
-        {% else %}
-          <span class="pill pill-retrab"><i class="bi bi-exclamation-triangle-fill"></i> {{ areapeso_status.erro }}</span>
+          <span class="pill pill-prep"><i class="bi bi-exclamation-triangle-fill"></i> Erro: {{ status.erro }}</span>
         {% endif %}
       </div>
       <form method="POST" style="margin-left:auto;">
         <input type="hidden" name="acao" value="recarregar">
-        <button class="btn btn-primary" type="submit"><i class="bi bi-arrow-clockwise"></i>Recarregar da memória</button>
+        <button class="btn btn-secondary" type="submit"><i class="bi bi-arrow-clockwise"></i>Recarregar da memória</button>
       </form>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;background:var(--bg-card,#1e2330);border-radius:8px;border:1px solid var(--line);margin-top:12px;">
+      <div>
+        <span class="small muted">Área/Peso (arquivo):</span><br>
+        <strong>{{ areapeso_info }}</strong>
+      </div>
+      <div>
+        <span class="small muted">Status:</span><br>
+        {% if areapeso_status.carregada %}
+          <span class="pill pill-banho"><i class="bi bi-check-circle-fill"></i> Carregada — {{ areapeso_status.total }} códigos</span>
+        {% else %}
+          <span class="pill pill-prep"><i class="bi bi-exclamation-triangle-fill"></i> {{ areapeso_status.erro }}</span>
+        {% endif %}
+      </div>
+      <div class="small muted" style="margin-left:auto;max-width:340px;">
+        Para atualizar: substitua <code>area_peso.xlsx</code> na raiz do projeto, commit e redeploy. Colunas: <code>Codigo Sap</code>, <code>Area de Superficie</code>, <code>Peso</code>.
+      </div>
     </div>
   </div>
 
   <div class="panel" style="overflow:hidden;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);">
-      <span class="section-title" style="font-size:1rem;">Ordens na lista mestra</span>
+      <span class="section-title" style="font-size:1rem;">Ordens em memória (amostra)</span>
       <span class="pill pill-banho">{{ total_itens }} ordens</span>
     </div>
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th>Ordem (OP)</th><th>Material (código)</th><th>Texto breve</th><th>Qtd</th></tr></thead>
+        <thead><tr><th>Ordem (OP)</th><th>Material (código)</th><th>Texto breve</th><th>Qtd total</th></tr></thead>
         <tbody>
           {% for i in amostra %}
           <tr><td><strong>{{ i.ordem }}</strong></td><td>{{ i.material }}</td><td><span class="small">{{ i.texto_breve }}</span></td><td class="mono">{{ i.quantidade }}</td></tr>
           {% else %}
-          <tr><td colspan="4" class="empty"><i class="bi bi-inbox"></i>Nenhuma ordem carregada. Verifique o arquivo no GitHub.</td></tr>
+          <tr><td colspan="4" class="empty"><i class="bi bi-inbox"></i>Nenhuma ordem carregada. Verifique se o arquivo existe na raiz do projeto.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -91,13 +103,13 @@ async function carregarDbStatus(){
       box.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'+
         '<i class="bi bi-shield-fill-check" style="color:#2BA45C;font-size:1.4rem;"></i>'+
         '<div><strong style="color:#1E9E57;">PostgreSQL conectado — dados seguros</strong><br>'+
-        '<span class="small muted">'+d.cards+' cestos, '+d.usuarios+' usuários e '+d.mestre+' ordens no banco permanente. Alterar o GitHub não apaga seus dados.</span></div></div>';
+        '<span class="small muted">'+d.cards+' cestos e '+d.usuarios+' usuários no banco permanente. Alterar o GitHub não apaga seus dados.</span></div></div>';
     }else{
       box.style.background='rgba(214,71,63,.10)';box.style.borderColor='#D6473F';
       box.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'+
         '<i class="bi bi-exclamation-triangle-fill" style="color:#D6473F;font-size:1.4rem;"></i>'+
         '<div><strong style="color:#A8322B;">ATENÇÃO: banco temporário (SQLite)!</strong><br>'+
-        '<span class="small muted">Os dados se perdem no próximo deploy. No Railway, no serviço <strong>web</strong>, adicione a variável <code>DATABASE_URL = </code><code>{% raw %}${{Postgres.DATABASE_URL}}{% endraw %}</code>.</span></div></div>';
+        '<span class="small muted">Os dados se perdem no próximo deploy. No Railway, serviço <strong>web</strong>, adicione a variável <code>DATABASE_URL = </code><code>{% raw %}${{Postgres.DATABASE_URL}}{% endraw %}</code>.</span></div></div>';
     }
   }catch(e){box.innerHTML='<span class="small muted">Não foi possível verificar o banco.</span>';}
 }
@@ -110,7 +122,7 @@ async function restaurarBackup(input){
     const d=await (await fetch('/api/admin/restaurar',{method:'POST',body:fd})).json();
     if(d.sucesso){
       msg.style.color='#1E9E57';
-      msg.textContent=`Importado: ${d.cards} cestos, ${d.usuarios} usuários, ${d.mestre} ordens.`;
+      msg.textContent=`Importado: ${d.cards} cestos, ${d.usuarios} usuários.`;
       carregarDbStatus();
     }else{msg.style.color='#D6473F';msg.textContent='Erro: '+(d.erro||'falhou');}
   }catch(e){msg.style.color='#D6473F';msg.textContent='Erro ao importar.';}
